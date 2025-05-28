@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Gunth15/Tmail/pkg/setup"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/list"
@@ -19,12 +20,13 @@ type Mailboxes struct {
 }
 type MainView struct {
 	msg     string
+	setup   setup.Setup
 	sidebar Mailboxes
 	isMail  bool
 }
 
 func (v MainView) Init() tea.Cmd {
-	return getMailboxes
+	return v.setup.Init()
 }
 
 func (v MainView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -42,10 +44,16 @@ func (v MainView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC:
 			return v, tea.Quit
 		case tea.KeyUp:
-			v.sidebar.cursor = v.sidebar.cursor % (len(v.sidebar.mailboxes) - 1)
+			v.sidebar.cursor++
+			if v.sidebar.cursor > len(v.sidebar.mailboxes)-1 {
+				v.sidebar.cursor = 0
+			}
 			return v, nil
 		case tea.KeyDown:
-			v.sidebar.cursor = (v.sidebar.cursor + 1) % len(v.sidebar.mailboxes)
+			v.sidebar.cursor--
+			if v.sidebar.cursor < 0 {
+				v.sidebar.cursor = len(v.sidebar.mailboxes) - 1
+			}
 			return v, nil
 		default:
 			v.msg = "Coming soon"
@@ -76,7 +84,7 @@ func getMailboxes() tea.Msg {
 		return err.Error()
 	}
 
-	if err = client.Login(testUsername, testPass).Wait(); err != nil {
+	if err = client.Login("PlaceHolder", "PlaceHolder").Wait(); err != nil {
 		return err.Error()
 	}
 
