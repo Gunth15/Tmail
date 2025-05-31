@@ -5,12 +5,15 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type WaitingCallBack func() (tea.Model, tea.Cmd)
+
 type Waiting struct {
-	spinner  spinner.Model
-	sending  bool
-	reason   string
-	error    bool
-	callback func() (tea.Model, tea.Cmd)
+	spinner    spinner.Model
+	sending    bool
+	reason     string
+	error      bool
+	success_cb WaitingCallBack
+	error_cb   WaitingCallBack
 }
 
 func InitWaitingModel() Waiting {
@@ -27,25 +30,23 @@ func (w Waiting) Init() tea.Cmd {
 	return w.spinner.Tick
 }
 
-func (s Setup) verifing(msg tea.Msg) (tea.Model, tea.Cmd) {
-	w := &s.waiting
+// WARNING: Set the error and success callback before use
+func (w Waiting) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "esc", "ctr+c":
-			return s, tea.Quit
+			return w, tea.Quit
 
 		case "enter":
 			if w.error {
-				s.state = LOGIN
-				s.login = InitLoginModel()
-				return s, nil
+				return w.error_cb()
 			}
-			return s, nil
+			return w, nil
 
 		default:
-			return s, nil
+			return w, nil
 		}
 
 	case error:
@@ -53,15 +54,15 @@ func (s Setup) verifing(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg != nil {
 			w.reason = "(Error)" + msg.Error() + "\n\n(Press enter to retry)"
 			w.error = true
-			return s, nil
+			return w, nil
 		} else {
-			return w.callback()
+			return w.success_cb()
 		}
 
 	default:
 		var cmd tea.Cmd
 		w.spinner, cmd = w.spinner.Update(msg)
-		return s, cmd
+		return w, cmd
 	}
 }
 
@@ -72,8 +73,10 @@ func (w Waiting) View() string {
 	return w.spinner.View() + focusedStyle.Render(w.reason)
 }
 
-func (w *Waiting) Wait(reason string, cb func() (tea.Model, tea.Cmd)) {
+func (w Waiting) Wait(reason string, success WaitingCallBack, error WaitingCallBack) Waiting {
 	w.reason = reason
 	w.sending = true
-	w.callback = cb
+	w.success_cb = success
+	w.error_cb = error
+	return w
 }

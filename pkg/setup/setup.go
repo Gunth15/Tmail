@@ -55,7 +55,7 @@ func (s Setup) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case LOGIN:
 		return s.get_login(msg)
 	case AUTHENTICATE:
-		return s.verifing(msg)
+		return s.waiting.Update(msg)
 	case SAVE:
 		return s, tea.Quit
 	default:

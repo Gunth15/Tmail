@@ -69,9 +69,13 @@ func (s Setup) get_login(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// If so authenticate their login.
 			if str == "enter" && l.focus == len(l.input) {
 				s.state = AUTHENTICATE
-				s.waiting.Wait("Verifying Account", func() (tea.Model, tea.Cmd) {
+				s.waiting = s.waiting.Wait("Verifying Account", func() (tea.Model, tea.Cmd) {
 					s.state = SAVE
 					s.waiting.reason = "Succes"
+					return s, nil
+				}, func() (tea.Model, tea.Cmd) {
+					s.state = LOGIN
+					s.login = InitLoginModel()
 					return s, nil
 				})
 				return s, tea.Batch(attempt_login(s.login.input[1].Value(), s.login.input[2].Value()), s.waiting.Init())
